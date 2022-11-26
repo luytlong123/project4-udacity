@@ -1,90 +1,56 @@
 import { TodosAccess } from '../helpers/todosAcess'
-import { AttachmentUtils } from '../helpers/attachmentUtils';
+// import { createAttachmentPresignedUrl } from './attachmentUtils';
 import { TodoItem } from '../models/TodoItem'
+import { TodoUpdate } from '../models/TodoUpdate'
 import { CreateTodoRequest } from '../requests/CreateTodoRequest'
 import { UpdateTodoRequest } from '../requests/UpdateTodoRequest'
 import { createLogger } from '../utils/logger'
 import * as uuid from 'uuid'
-import { TodoUpdate } from '../models/TodoUpdate'
+// import * as createError from 'http-errors'
 
-const todoAccess: TodosAccess = new TodosAccess()
-const attachmentUtils = new AttachmentUtils()
-const logger = createLogger('businessLayerLogger')
-export async function getTodosForUser(userId: string) {
-    try {
-        let todos = await todoAccess.getTodoList(userId)
-        return todos
-    } catch (err) {
-        logger.error("Unable to get list of ToDos", {
-            userId,
-            error: err
-        })
-        return err
-    }
+// ##TODO: Implement businessLogic
+
+// const bucketName = process.env.ATTACHMENT_S3_BUCKET
+const logger = createLogger('businessLogic-todos')
+
+const todosAccess = new TodosAccess()
+
+
+export async function createTodo(userId: string, newTodo: CreateTodoRequest): Promise<TodoItem> {
+  const createdAt = new Date().toISOString()  
+  const todoId = uuid.v4()
+  let newItem: TodoItem = {
+    userId,
+    todoId,
+    createdAt,
+    done: false,
+    ...newTodo,
+    attachmentUrl: ''
+  }
+  logger.info('call todos.createTodo: ' + newItem);
+  return await todosAccess.createTodo(newItem)
 }
 
-
-export async function createTodo(todoRequest: CreateTodoRequest, userId: string) {
-
-    const todoId = uuid.v4()
-    const todoItem: TodoItem =
-    {
-        userId: userId,
-        todoId: todoId,
-        createdAt: new Date().toLocaleString(),
-        name: todoRequest.name,
-        dueDate: todoRequest.dueDate,
-        done: false,
-        attachmentUrl: todoRequest.attachmentUrl
-    }
-
-    try {
-        await todoAccess.insertTodoItem(todoItem)
-        return todoItem
-    } catch (err) {
-        logger.error("Unable to save ToDo Item", {
-            methodName: 'todos.intertTodoItem',
-            userId,
-            error: err
-        })
-        return err
-    }
-
+export async function getTodosForUser(userId: string): Promise<TodoItem[]> {
+  logger.info('call todos.getTodosForUser: ' + userId);
+  return todosAccess.getTodosForUser(userId)
+}
+  
+export async function updateTodo(userId: string, todoId: string, updatedTodo: UpdateTodoRequest): Promise<TodoUpdate> {
+  let todoUpdate: TodoUpdate = {
+    ...updatedTodo
+  }
+  logger.info('call todos.updateTodo: ' + userId + "," + todoId + "," + todoUpdate);
+  return todosAccess.updateTodo(userId, todoId, todoUpdate)
 }
 
-export async function updateTodo(todoId: string, userId: string, updatedTodoItem: UpdateTodoRequest) {
-    const todoUpdate: TodoUpdate = {
-        ...updatedTodoItem
-    }
-
-    try {
-        await todoAccess.updateTodoItem(todoId, userId, todoUpdate)
-    } catch (err) {
-        return err
-    }
+export async function updateAttachmentUrl(userId: string, todoId: string, attachmentUrl: string): Promise<string> {
+  logger.info('call todos.updateTodo: ' + userId + "," + todoId + "," + attachmentUrl);
+  return todosAccess.updateAttachmentUrl(userId, todoId, attachmentUrl)
 }
 
-export async function deleteTodo(todoId: string, userId: string) {
-
-    try {
-        await todoAccess.deleteTodoItem(todoId, userId)
-    } catch (err) {
-        return err
-    }
-}
-
-export async function createAttachmentPresignedUrl(todoId: string, userId: string) {
-    try {
-        const imageId = uuid.v4();
-        let url = await attachmentUtils.generateSignedUrl(imageId)
-        await todoAccess.updateTodoItemAttachmentUrl(todoId, userId, imageId)
-        return url
-    } catch (err) {
-        logger.error("Unable to update ToDo Item attachment Url", {
-            methodName: 'todos.createAttachmentPresignedUrl',
-            userId,
-            error: err
-        })
-        return err
-    }
-}
+  export async function deleteTodo(userId: string, todoId: string) {
+    logger.info('call todos.createTodo: ' + userId + "," + todoId);
+    return todosAccess.deleteTodo(userId, todoId)
+    
+  }
